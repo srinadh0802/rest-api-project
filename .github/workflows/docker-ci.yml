@@ -31,3 +31,12 @@ jobs:
           format: table
           severity: HIGH,CRITICAL
           ignore-unfixed: true
+                  
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: store-api:test
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
