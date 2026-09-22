@@ -1,4 +1,4 @@
-name: Docker CI
+name: Docker CI/CD
 
 on:
   push:
@@ -23,24 +23,8 @@ jobs:
           format: table
           severity: HIGH,CRITICAL
           ignore-unfixed: true
-
-      - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: store-api:test
-          format: table
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-                  
-      - name: Scan Docker image with Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: store-api:test
-          format: table
-          severity: HIGH,CRITICAL   
-          ignore-unfixed: true
           exit-code: '1'
-            
+
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
@@ -53,29 +37,29 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/store-api:${{ github.sha }}
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
 
-    deploy:
-     needs: build
-     runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
 
-     steps:
-       - name: Deploy to EC2
-         env:
-           EC2_HOST: ${{ secrets.EC2_HOST }}
-           EC2_USER: ${{ secrets.EC2_USER }}
-           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
 
-         run: |
-           mkdir -p ~/.ssh
-           printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ec2-key.pem
-           chmod 600 ~/.ssh/ec2-key.pem
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ec2-key.pem
+          chmod 600 ~/.ssh/ec2-key.pem
 
-           ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
 
-           ssh -i ~/.ssh/ec2-key.pem "$EC2_USER@$EC2_HOST" "
-             cd ~/rest-api-project &&
-             sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${GITHUB_SHA}/' .env &&
-             docker compose -f compose.prod.yaml pull api &&
-             docker compose -f compose.prod.yaml up -d &&
-             docker compose -f compose.prod.yaml ps
-           "
+          ssh -i ~/.ssh/ec2-key.pem "$EC2_USER@$EC2_HOST" "
+            cd ~/rest-api-project &&
+            sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${GITHUB_SHA}/' .env &&
+            docker compose -f compose.prod.yaml pull api &&
+            docker compose -f compose.prod.yaml up -d &&
+            docker compose -f compose.prod.yaml ps
+          "
