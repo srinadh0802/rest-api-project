@@ -1,0 +1,17 @@
+name: Docker CI
+
+on:
+  push:
+    branches:
+      - feature/dockerize-store-api
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Build Docker image
+        run: docker build -t store-api:test .
