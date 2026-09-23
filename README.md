@@ -1,174 +1,261 @@
+# Secure Docker CI/CD Pipeline for Flask REST API
 
----
+A hands-on DevSecOps project demonstrating containerisation, security scanning, CI/CD automation, container image publishing, and automated deployment to AWS EC2.
 
-# Store API (Flask + PostgreSQL)
+> The base Flask REST API originates from an upstream open-source project.  
+> My contribution focuses on Docker, Docker Compose, container security scanning, CI/CD automation, Docker Hub integration, and AWS EC2 deployment.
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)
-![Flask](https://img.shields.io/badge/Flask-API-success?logo=flask)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-316192?logo=postgresql)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-ORM-red)
-![License](https://img.shields.io/badge/License-MIT-lightgrey)
-![Status](https://img.shields.io/badge/Status-Deployed-brightgreen)
+## Architecture
 
-A **RESTful API** built with **Flask** and **PostgreSQL**, designed to manage **stores, items, and tags**.  
-This project demonstrates modern API development practices including authentication, database migrations, and schema validation. 
-It also includes **user registration with email verification** using Maileroo.
-
-🌍 **Live API on Render:**  
-👉 [https://rest-api-project-q1zn.onrender.com](https://rest-api-project-q1zn.onrender.com)  
-
-⚡ The API does not include a frontend UI. You can explore and test it using:
-- [Swagger UI](https://rest-api-project-q1zn.onrender.com/swagger-ui)  
-- **Postman** or **Insomnia** REST clients  
-
----
-
-## 🚀 Features
-
-* **Flask-based REST API** following best practices.
-* **PostgreSQL database** with SQLAlchemy ORM.
-* **Alembic migrations** for schema version control.
-* **JWT authentication** for secure endpoints.
-* **CRUD operations** for:
-  * Stores
-  * Items
-  * Tags
-  * Users
-* **Marshmallow schemas** for input/output validation.
-* **Blocklist** support for token revocation (logout).
-* Organized **resources and models** structure.
-* User registration with **email verification** (Maileroo API)
-* Support for **background tasks / queue workers** (currently disabled in Render free tier, but fully implemented in code)
-
----
-
-## 📂 Project Structure
-
+```text
+Developer Push
+      ↓
+GitHub Repository
+      ↓
+GitHub Actions
+      ↓
+Docker Image Build
+      ↓
+Trivy Vulnerability Scan
+      ↓
+Docker Hub
+      ↓
+Automated SSH Deployment
+      ↓
+AWS EC2
+      ↓
+Docker Compose
+   ↙          ↘
+Flask API    PostgreSQL
 ```
 
-.
-├── app.py                     # Application factory (create_app)
-├── db.py                      # Database initialization
-├── migrations/                # Alembic migrations folder
-├── models/                    # SQLAlchemy models (Store, Item, Tag, User, Token blocklist, Password reset)
-├── Procfile                   # For deployment (specifies processes)
-├── resources/                 # Flask-Smorest resource endpoints
-├── schemas.py                 # Marshmallow schemas for validation / serialization
-├── security/                  # JWT and admin permissions
-├── settings.py                # Configuration / settings (e.g. env-based config)
-├── tasks.py                   # Background tasks / queue worker definitions
-├── templates/                 # Email templates (for verification and password reset)
-│   └── email/
-├── requirements.txt           # Python dependencies
-├── .env.example               # Example environment variables
-└── .flaskenv                  # Flask environment variables (development)
+## Technologies Used
 
-````
+- Docker
+- Docker Compose
+- Git & GitHub
+- GitHub Actions
+- Trivy
+- Docker Hub
+- AWS EC2
+- Linux
+- Flask
+- PostgreSQL
 
----
+## DevSecOps Workflow
 
-## 🛠️ Tech Stack & Skills
+1. Code is pushed to GitHub.
+2. GitHub Actions automatically starts the CI pipeline.
+3. A Docker image is built from the Dockerfile.
+4. Trivy scans the Docker image for HIGH and CRITICAL vulnerabilities.
+5. The pipeline fails if the configured vulnerability security gate is violated.
+6. Successful Docker images are tagged using the Git commit SHA.
+7. The image is pushed automatically to Docker Hub.
+8. The deployment job connects securely to AWS EC2 using SSH.
+9. The EC2 deployment updates the Docker image tag to the latest Git commit SHA.
+10. Docker Compose pulls the new application image.
+11. Docker Compose recreates the application container using the new image.
+12. PostgreSQL runs as a separate container with persistent storage.
 
-* **Flask** (API framework)
-* **Flask-Smorest** (blueprint-based resources)
-* **PostgreSQL** (relational database)
-* **SQLAlchemy ORM**
-* **Alembic** (migrations)
-* **Marshmallow** (validation/serialization)
-* **Flask-JWT-Extended** (authentication)
-* **Environment configuration** with `.env`
-* **Maileroo API** (email verification)
+## Docker Architecture
 
----
+The application consists of:
 
-## ⚡ Quickstart (Local Development)
+- Flask REST API container
+- PostgreSQL database container
+- Docker bridge networking
+- Persistent PostgreSQL named volume
+- Docker health checks
+- Restart policies
+- Environment-based configuration
+- Docker Compose orchestration
 
-### 1. Clone the repository
+The API and PostgreSQL containers communicate through the internal Docker network.
+
+The PostgreSQL database port is not exposed publicly.
+
+## Security Features
+
+- Trivy container vulnerability scanning
+- HIGH and CRITICAL vulnerability security gate
+- GitHub Actions Secrets for sensitive credentials
+- Docker Hub Personal Access Token for registry authentication
+- SSH key authentication for AWS EC2 deployment
+- Database port kept private
+- `.env` file excluded from Git
+- Git commit SHA used for Docker image version traceability
+
+## CI/CD Pipeline
+
+GitHub Actions performs the following automated workflow:
+
+```text
+Build → Scan → Tag → Push → Deploy
+```
+
+### CI
+
+The Continuous Integration stage performs:
+
+```text
+Checkout Source Code
+        ↓
+Build Docker Image
+        ↓
+Trivy Security Scan
+        ↓
+Tag Image with Git SHA
+        ↓
+Push Image to Docker Hub
+```
+
+### CD
+
+The Continuous Deployment stage performs:
+
+```text
+GitHub Actions
+       ↓
+SSH to AWS EC2
+       ↓
+Update IMAGE_TAG
+       ↓
+Docker Compose Pull
+       ↓
+Docker Compose Up
+       ↓
+New Application Version Running
+```
+
+## Docker Image Versioning
+
+Each successful CI build is tagged using the Git commit SHA.
+
+Example:
+
+```text
+srinadh164/store-api:<git-commit-sha>
+```
+
+This provides traceability between:
+
+```text
+Git Commit
+    ↓
+Docker Image
+    ↓
+Deployment
+```
+
+## PostgreSQL Persistence
+
+PostgreSQL uses a Docker named volume:
+
+```text
+store-postgres-data
+```
+
+This allows database data to persist even if the PostgreSQL container is recreated.
+
+A normal:
 
 ```bash
-git clone https://github.com/AliReza000J/rest-api-project.git
-cd rest-api-project
-````
+docker compose down
+```
 
-### 2. Create and activate a virtual environment
+removes the containers and Compose network but keeps the named volume.
+
+## Environment Configuration
+
+Application configuration is provided using environment variables.
+
+Sensitive values are stored in `.env` or GitHub Actions Secrets instead of being hardcoded directly in the Dockerfile or workflow.
+
+The `.env` file is excluded from Git using `.gitignore`.
+
+## Deployment
+
+The application is deployed to an AWS EC2 Ubuntu server.
+
+Production Docker images are pulled from Docker Hub rather than rebuilt directly on the EC2 deployment server.
+
+The production deployment uses:
 
 ```bash
-python -m venv venv
-source venv/bin/activate   # Linux / Mac
-venv\Scripts\activate      # Windows
+docker compose -f compose.prod.yaml pull
+docker compose -f compose.prod.yaml up -d
 ```
 
-### 3. Install dependencies
+The CI/CD pipeline executes the deployment automatically after a successful Docker build, Trivy security scan, and Docker Hub push.
+
+## Health Checks
+
+PostgreSQL uses a Docker health check based on:
 
 ```bash
-pip install -r requirements.txt
+pg_isready
 ```
 
-### 4. Setup environment variables
+The API service waits for PostgreSQL to become healthy before starting.
 
-Create a `.env` file (see `.env.example`) with:
+This avoids application startup failures caused by the database container running but not yet being ready to accept connections.
 
-```
-DATABASE_URL=postgresql://user:password@localhost:5432/dbname
-JWT_SECRET_KEY=your_secret_key
-```
-And so on.
+## Restart Policy
 
-### 5. Run database migrations
+The containers use:
 
-```bash
-flask db upgrade
+```yaml
+restart: unless-stopped
 ```
 
-### 6. Start the API locally
+This allows Docker to restart containers automatically after unexpected failures while respecting intentional manual stops.
 
-```bash
-flask run
-```
+## Project Origin
 
----
+The base Flask REST API originates from the upstream open-source project.
 
-## 📌 Example API Endpoints
+The application code itself is not presented as my original work.
 
-* **Register User** → `POST /register`
-  > On successful registration, a verification email is automatically sent to the provided email address.
-* **Login** → `POST /login`
-* **Create Store** → `POST /store`
-* **Get All Stores** → `GET /store`
-* **Create Item** → `POST /item`
-* **Assign Tag to Item** → `POST /item/{item_id}/tag/{tag_id}`
+My contribution to this project focuses on the DevSecOps lifecycle, including:
 
-📖 Full interactive docs available at:
-👉 [Swagger UI](https://rest-api-project-q1zn.onrender.com/swagger-ui)
+- Docker containerisation
+- Docker Compose configuration
+- PostgreSQL container deployment
+- Docker networking
+- Persistent storage
+- Health checks
+- Environment variable management
+- Trivy vulnerability scanning
+- GitHub Actions CI/CD
+- Docker Hub integration
+- Git SHA image versioning
+- AWS EC2 deployment
+- SSH-based continuous deployment
+- CI/CD troubleshooting
 
----
+## What I Learned
 
-## 🎯 Highlights
+This project provided practical experience with:
 
-This project demonstrates:
+- Writing and troubleshooting Dockerfiles
+- Building and running Docker images and containers
+- Docker networking
+- Docker volumes and persistent storage
+- Docker Compose
+- Environment variables and secret handling
+- Docker health checks
+- Restart policies
+- Container vulnerability scanning with Trivy
+- GitHub Actions workflow development
+- Docker Hub image publishing
+- Container image versioning
+- AWS EC2 deployment
+- SSH authentication
+- CI/CD automation
+- Troubleshooting failed builds and deployments
 
-* Building **REST APIs** with Flask.
-* Structuring a **production-ready backend**.
-* Handling **database migrations** with Alembic.
-* Implementing **JWT authentication** and **token revocation**.
-* Using **schemas** for validation and clean data handling.
+## Author
 
----
+**Srinadh**
 
-## 🔮 Future Improvements
-
-* **Docker support** → containerize the app for easier deployment.
-* **Unit & integration testing** → add coverage with `pytest` and `Flask-Testing`.
-* **CI/CD pipeline** → automate testing & deployment with GitHub Actions.
-* **Role-based access control (RBAC)** → extend user management.
-* **Caching & performance optimization** → Redis or Flask-Caching.
-* **Monitoring & logging**
-
----
-
-## ⚠️ Notes
-
-Background task queue and worker are implemented but disabled on Render free tier. 
-To enable them, configure a Redis instance and run the worker service.
-
----
+Aspiring Cloud / DevSecOps Engineer
